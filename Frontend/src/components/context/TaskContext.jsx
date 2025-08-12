@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -32,36 +32,71 @@ export const useTasks = () => {
 export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      loadTasks();
+  // Helper to normalize task shape
+  const normalizeTask = (task) => {
+    const getId = (value) => {
+      if (!value) return value
+      if (typeof value === 'string') return value
+      if (typeof value === 'object') return value._id || value.id || value
+      return value
     }
-  }, [user]);
 
-  // Helper to normalize _id to id
-  const normalizeTask = (task) => ({ ...task, id: task._id });
+    return {
+      ...task,
+      id: task._id,
+      // Ensure these are always comparable IDs (strings)
+      createdBy: getId(task.createdBy),
+      assignedTo: getId(task.assignedTo),
+    }
+  }
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
+    if (!user || authLoading) {
+      console.log('loadTasks skipped:', { user: user?.id, authLoading })
+      return
+    }
+    console.log('loadTasks called for user:', user.id)
     setLoading(true);
     try {
       const response = await api.get('/tasks');
-      setTasks(response.data.data.tasks.map(normalizeTask));
+      const normalizedTasks = response.data.data.tasks.map(normalizeTask);
+      console.log('Tasks loaded:', normalizedTasks.length, 'tasks')
+      setTasks(normalizedTasks);
     } catch (err) {
+      console.error('Failed to load tasks:', err)
       toast.error(err.response?.data?.message || 'Failed to load tasks');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    // Reset tasks whenever the authenticated user changes to avoid leaking previous user's tasks
+    console.log('TaskContext useEffect triggered:', { user: user?.id, authLoading })
+    setTasks([])
+    if (user && !authLoading) {
+      console.log('Loading tasks for user:', user.id)
+      loadTasks()
+    }
+  }, [user, authLoading, loadTasks])
 
   const addTask = async (task) => {
     try {
+      console.log('Creating task with data:', task)
       const response = await api.post('/tasks', task);
-      setTasks((prev) => [...prev, normalizeTask(response.data.data.task)]);
+      const normalizedTask = normalizeTask(response.data.data.task);
+      console.log('Task created successfully:', normalizedTask)
+      setTasks((prev) => {
+        const newTasks = [...prev, normalizedTask];
+        console.log('Updated tasks list:', newTasks);
+        return newTasks;
+      });
       toast.success('Task created successfully!');
-      return normalizeTask(response.data.data.task);
+      return normalizedTask;
     } catch (err) {
+      console.error('Failed to create task:', err);
       toast.error(err.response?.data?.message || 'Failed to create task');
       throw err;
     }
@@ -103,8 +138,18 @@ export const TaskProvider = ({ children }) => {
   };
 
   const getTasksByUser = (userId) => {
-    return tasks.filter((task) => task.createdBy === userId || task.assignedTo === userId);
-  };
+    const idsEqual = (a, b) => {
+      if (!a || !b) return false
+      return String(a) === String(b)
+    }
+    const userTasks = tasks.filter(
+      (task) => idsEqual(task.createdBy, userId) || idsEqual(task.assignedTo, userId)
+    )
+    console.log('getTasksByUser called with userId:', userId)
+    console.log('All tasks:', tasks)
+    console.log('User tasks:', userTasks)
+    return userTasks
+  }
 
   const getTasksByStatus = (status) => {
     return tasks.filter((task) => task.status === status);
@@ -124,6 +169,7 @@ export const TaskProvider = ({ children }) => {
     getTasksByStatus,
     getTasksByPriority,
     loadTasks,
+    refreshTasks: loadTasks,
   };
 
   return (

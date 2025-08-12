@@ -10,7 +10,12 @@ const APIFeatures = require('../utils/apiFeatures');
 exports.getAllTasks = catchAsync(async (req, res, next) => {
   // Filter tasks by the logged-in user
   const features = new APIFeatures(
-    Task.find({ $or: [{ createdBy: req.user.id }, { assignedTo: req.user.id }] }),
+    Task.find({
+      $and: [
+        { $or: [{ createdBy: req.user.id }, { assignedTo: req.user.id }] },
+        { $or: [{ team: { $exists: false } }, { team: null }] },
+      ],
+    }),
     req.query
   )
     .filter()
@@ -35,7 +40,10 @@ exports.getAllTasks = catchAsync(async (req, res, next) => {
 exports.getTask = catchAsync(async (req, res, next) => {
   const task = await Task.findOne({
     _id: req.params.id,
-    $or: [{ createdBy: req.user.id }, { assignedTo: req.user.id }],
+    $and: [
+      { $or: [{ createdBy: req.user.id }, { assignedTo: req.user.id }] },
+      { $or: [{ team: { $exists: false } }, { team: null }] },
+    ],
   });
 
   if (!task) {
@@ -81,7 +89,10 @@ exports.updateTask = catchAsync(async (req, res, next) => {
   const task = await Task.findOneAndUpdate(
     {
       _id: req.params.id,
-      $or: [{ createdBy: req.user.id }, { assignedTo: req.user.id }],
+      $and: [
+        { $or: [{ createdBy: req.user.id }, { assignedTo: req.user.id }] },
+        { $or: [{ team: { $exists: false } }, { team: null }] },
+      ],
     },
     req.body,
     {
@@ -109,6 +120,7 @@ exports.deleteTask = catchAsync(async (req, res, next) => {
   const task = await Task.findOneAndDelete({
     _id: req.params.id,
     createdBy: req.user.id,
+    $or: [{ team: { $exists: false } }, { team: null }],
   });
 
   if (!task) {

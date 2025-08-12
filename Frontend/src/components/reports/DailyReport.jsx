@@ -88,11 +88,17 @@ const DailyReport = () => {
     const today = new Date()
     const isToday = selectedDate.toDateString() === today.toDateString()
 
-    // Filter tasks for selected date
+    // Filter tasks for selected date - include all tasks, not just those with due dates
     const tasksForDate = userTasks.filter(task => {
+      // If task has a due date, check if it matches the selected date
       if (task.dueDate) {
         const taskDate = task.dueDate.split('T')[0]
         return taskDate === dateString
+      }
+      // If no due date, include the task if it was created on the selected date
+      if (task.createdAt) {
+        const createdDate = new Date(task.createdAt).toISOString().split('T')[0]
+        return createdDate === dateString
       }
       return false
     })
@@ -102,6 +108,32 @@ const DailyReport = () => {
     console.log('🔍 User ID:', user?.id)
     console.log('🔍 User tasks count:', userTasks.length)
     console.log('🔍 Tasks for date count:', tasksForDate.length)
+    console.log('🔍 All user tasks:', userTasks.map(t => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      dueDate: t.dueDate,
+      createdAt: t.createdAt,
+      completionTime: t.completionTime
+    })))
+    
+    // Debug: Log detailed date filtering information
+    console.log('🔍 Date filtering debug:', {
+      selectedDate: dateString,
+      userTasks: userTasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        hasDueDate: !!task.dueDate,
+        dueDate: task.dueDate,
+        dueDateMatch: task.dueDate ? task.dueDate.split('T')[0] === dateString : false,
+        hasCreatedAt: !!task.createdAt,
+        createdAt: task.createdAt,
+        createdDate: task.createdAt ? new Date(task.createdAt).toISOString().split('T')[0] : 'N/A',
+        createdDateMatch: task.createdAt ? new Date(task.createdAt).toISOString().split('T')[0] === dateString : false,
+        included: (task.dueDate && task.dueDate.split('T')[0] === dateString) || 
+                 (task.createdAt && new Date(task.createdAt).toISOString().split('T')[0] === dateString)
+      }))
+    })
 
     // Calculate statistics
     const totalTasks = tasksForDate.length
@@ -178,11 +210,29 @@ const DailyReport = () => {
       totalCompletedTasks: completedTasksWithTime.length,
       validCompletionTimes: validCompletionTimes,
       totalCompletionTime: totalCompletionTime,
-      averageCompletionTime: validCompletionTimes > 0 ? Math.round((totalCompletionTime / validCompletionTimes) * 10) / 10 : 0
+      rawAverage: validCompletionTimes > 0 ? totalCompletionTime / validCompletionTimes : 0,
+      averageCompletionTime: validCompletionTimes > 0 ? (() => {
+        const rawTime = totalCompletionTime / validCompletionTimes;
+        if (rawTime < 0.1) return Math.round(rawTime * 1000) / 1000;
+        if (rawTime < 1) return Math.round(rawTime * 100) / 100;
+        return Math.round(rawTime * 10) / 10;
+      })() : 0
     })
     
     const averageCompletionTime = validCompletionTimes > 0 
-      ? Math.round((totalCompletionTime / validCompletionTimes) * 10) / 10 
+      ? (() => {
+          const rawTime = totalCompletionTime / validCompletionTimes;
+          // For very small times (less than 0.1 hours), round to 3 decimal places
+          if (rawTime < 0.1) {
+            return Math.round(rawTime * 1000) / 1000;
+          }
+          // For small times (less than 1 hour), round to 2 decimal places
+          if (rawTime < 1) {
+            return Math.round(rawTime * 100) / 100;
+          }
+          // For larger times, round to 1 decimal place
+          return Math.round(rawTime * 10) / 10;
+        })()
       : 0
 
     setReportData({
@@ -200,9 +250,15 @@ const DailyReport = () => {
   const getTasksByStatus = (status) => {
     const dateString = selectedDate.toISOString().split('T')[0]
     return userTasks.filter(task => {
+      // If task has a due date, check if it matches the selected date
       if (task.dueDate) {
         const taskDate = task.dueDate.split('T')[0]
         return taskDate === dateString && task.status === status
+      }
+      // If no due date, include the task if it was created on the selected date
+      if (task.createdAt) {
+        const createdDate = new Date(task.createdAt).toISOString().split('T')[0]
+        return createdDate === dateString && task.status === status
       }
       return false
     })
@@ -211,9 +267,15 @@ const DailyReport = () => {
   const getTasksByPriority = (priority) => {
     const dateString = selectedDate.toISOString().split('T')[0]
     return userTasks.filter(task => {
+      // If task has a due date, check if it matches the selected date
       if (task.dueDate) {
         const taskDate = task.dueDate.split('T')[0]
         return taskDate === dateString && task.priority === priority
+      }
+      // If no due date, include the task if it was created on the selected date
+      if (task.createdAt) {
+        const createdDate = new Date(task.createdAt).toISOString().split('T')[0]
+        return createdDate === dateString && task.priority === priority
       }
       return false
     })

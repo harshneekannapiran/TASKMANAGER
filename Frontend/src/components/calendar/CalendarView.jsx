@@ -33,10 +33,30 @@ const CalendarView = () => {
   }
 
   const getTasksForDate = (date) => {
-    const dateString = date.toISOString().split('T')[0]
+    // Format the date in YYYY-MM-DD format using local timezone
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateString = `${year}-${month}-${day}`
+    
     return userTasks.filter(task => {
       if (task.dueDate) {
-        const taskDate = task.dueDate.split('T')[0]
+        // Handle both ISO string format and date-only format
+        let taskDate
+        if (task.dueDate.includes('T')) {
+          // If it's an ISO string, extract the date part
+          taskDate = task.dueDate.split('T')[0]
+        } else {
+          // If it's already a date string (YYYY-MM-DD), use it directly
+          taskDate = task.dueDate
+        }
+        
+        // Debug logging for date comparison
+        if (taskDate === dateString) {
+          console.log(`📅 Task "${task.title}" matches date ${dateString}`)
+        }
+        
+        // Compare dates in YYYY-MM-DD format
         return taskDate === dateString
       }
       return false

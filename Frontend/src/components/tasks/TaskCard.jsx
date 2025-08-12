@@ -217,6 +217,14 @@ const TaskCard = ({ task, onDelete, onStatusChange }) => {
             <span>Updated: {formatDate(task.updatedAt)}</span>
           )}
         </div>
+
+        {/* Completion Time for completed tasks */}
+        {task.status === 'completed' && task.completionTime && (
+          <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
+            <CheckCircle className="h-3 w-3 text-green-500" />
+            <span>Completed: {formatDate(task.completionTime)}</span>
+          </div>
+        )}
       </div>
     </div>
   )

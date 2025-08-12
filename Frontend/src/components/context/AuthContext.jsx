@@ -57,15 +57,19 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('Login attempt for:', email)
       const response = await api.post('/auth/login', {
         email,
         password,
       });
       localStorage.setItem('taskmanager_token', response.data.token);
-      setUser(normalizeUser(response.data.data.user));
+      const normalizedUser = normalizeUser(response.data.data.user);
+      console.log('Login successful, setting user:', normalizedUser.id)
+      setUser(normalizedUser);
       toast.success('Login successful!');
       return true;
     } catch (err) {
+      console.error('Login failed:', err)
       toast.error(err.response?.data?.message || 'Login failed');
       return false;
     }

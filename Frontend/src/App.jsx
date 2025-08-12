@@ -14,6 +14,9 @@ import PomodoroTimer from './components/timer/PomodoroTimer'
 import DailyReport from './components/reports/DailyReport'
 import Navbar from './components/layout/Navbar'
 import { ThemeProvider } from './components/context/ThemeProvider'
+import { TeamsProvider } from './components/context/TeamsContext'
+import TeamsHome from './components/teams/TeamsHome'
+import TeamDashboard from './components/teams/TeamDashboard'
 
 // Context
 import { AuthProvider, useAuth } from './components/context/AuthContext'
@@ -24,12 +27,14 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <TaskProvider>
+          <TeamsProvider>
           <Router>
             <div className="app">
               <Toaster position="top-right" />
               <AppContent />
             </div>
           </Router>
+          </TeamsProvider>
         </TaskProvider>
       </AuthProvider>
     </ThemeProvider>
@@ -53,7 +58,7 @@ function AppContent() {
       {user && <Navbar />}
       <main className={user ? "main-content" : ""}>
         <Routes>
-          <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
           <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" />} />
@@ -63,6 +68,9 @@ function AppContent() {
           <Route path="/calendar" element={user ? <CalendarView /> : <Navigate to="/" />} />
           <Route path="/timer" element={user ? <PomodoroTimer /> : <Navigate to="/" />} />
           <Route path="/report" element={user ? <DailyReport /> : <Navigate to="/" />} />
+          {/* Teams */}
+          <Route path="/teams" element={user ? <TeamsHome /> : <Navigate to="/" />} />
+          <Route path="/teams/:teamId" element={user ? <TeamDashboard /> : <Navigate to="/" />} />
         </Routes>
       </main>
     </>

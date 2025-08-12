@@ -14,7 +14,6 @@ import {
   Calendar, 
   Clock, 
   BarChart3,
-  Plus,
   Layers
 } from 'lucide-react'
 
@@ -27,7 +26,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout()
-    navigate('/login')
+    navigate('/')
   }
 
   const navItems = [
@@ -36,6 +35,7 @@ const Navbar = () => {
     { path: '/calendar', label: 'Calendar', icon: Calendar },
     { path: '/timer', label: 'Timer', icon: Clock },
     { path: '/report', label: 'Reports', icon: BarChart3 },
+    { path: '/teams', label: 'Teams', icon: Layers },
   ]
 
   return (
@@ -78,15 +78,6 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Quick Add Task Button */}
-            <Link
-              to="/tasks/new"
-              className="hidden md:flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Task
-            </Link>
-
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -165,16 +156,7 @@ const Navbar = () => {
                   </Link>
                 )
               })}
-              <Link
-                to="/tasks/new"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-3 py-2 rounded-md text-base font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-              >
-                <div className="flex items-center space-x-2">
-                  <Plus className="h-5 w-5" />
-                  <span>Add Task</span>
-                </div>
-              </Link>
+              
             </div>
           </div>
         )}
