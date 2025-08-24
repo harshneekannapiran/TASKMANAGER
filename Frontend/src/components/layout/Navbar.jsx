@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeProvider'
+import { useTeams } from '../context/TeamsContext'
+import { useTasks } from '../context/TaskContext'
 import { 
   Sun, 
   Moon, 
@@ -14,15 +16,41 @@ import {
   Calendar, 
   Clock, 
   BarChart3,
-  Layers
+  Layers,
+  Bell,
+  Activity
 } from 'lucide-react'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const { isDarkMode, toggleTheme } = useTheme()
+  const { invitations } = useTeams()
+  const { tasks } = useTasks()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // Calculate unread notifications count
+  const getUnreadNotificationsCount = () => {
+    let count = 0
+    
+    // Team invitations
+    count += invitations.length
+    
+    // Tasks due within 24 hours
+    const now = new Date()
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    
+    tasks.forEach(task => {
+      if (task.dueDate && new Date(task.dueDate) <= tomorrow && task.status !== 'completed') {
+        count++
+      }
+    })
+    
+    return count
+  }
+
+  const unreadNotificationsCount = getUnreadNotificationsCount()
 
   const handleLogout = () => {
     logout()
@@ -35,7 +63,9 @@ const Navbar = () => {
     { path: '/calendar', label: 'Calendar', icon: Calendar },
     { path: '/timer', label: 'Timer', icon: Clock },
     { path: '/report', label: 'Reports', icon: BarChart3 },
-    { path: '/teams', label: 'Teams', icon: Layers },
+    { path: '/teams', label: 'Teams', icon: Layers, hasNotification: invitations.length > 0, notificationCount: invitations.length },
+    { path: '/notifications', label: 'Notifications', icon: Bell, hasNotification: unreadNotificationsCount > 0, notificationCount: unreadNotificationsCount },
+    { path: '/activity', label: 'Activity', icon: Activity },
   ]
 
   return (
@@ -62,7 +92,7 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
                     isActive
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -71,6 +101,17 @@ const Navbar = () => {
                   <div className="flex items-center space-x-1">
                     <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
+                    {item.hasNotification && (
+                      <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></div>
+                    )}
+                    {item.notificationCount > 0 && (
+                      <div 
+                        className="absolute -top-2 -right-2 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm border border-white dark:border-gray-800"
+                        title={`${item.notificationCount} pending team invitation${item.notificationCount > 1 ? 's' : ''}`}
+                      >
+                        {item.notificationCount > 9 ? '9+' : item.notificationCount}
+                      </div>
+                    )}
                   </div>
                 </Link>
               )
@@ -143,7 +184,7 @@ const Navbar = () => {
                     key={item.path}
                     to={item.path}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors relative ${
                       isActive
                         ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -152,6 +193,17 @@ const Navbar = () => {
                     <div className="flex items-center space-x-2">
                       <Icon className="h-5 w-5" />
                       <span>{item.label}</span>
+                      {item.hasNotification && (
+                        <div className="h-2 w-2 bg-red-500 rounded-full"></div>
+                      )}
+                      {item.notificationCount > 0 && (
+                        <div 
+                          className="h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm border border-white dark:border-gray-800"
+                          title={`${item.notificationCount} pending team invitation${item.notificationCount > 1 ? 's' : ''}`}
+                        >
+                          {item.notificationCount > 9 ? '9+' : item.notificationCount}
+                        </div>
+                      )}
                     </div>
                   </Link>
                 )

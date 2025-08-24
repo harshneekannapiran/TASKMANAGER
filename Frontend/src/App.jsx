@@ -17,6 +17,8 @@ import { ThemeProvider } from './components/context/ThemeProvider'
 import { TeamsProvider } from './components/context/TeamsContext'
 import TeamsHome from './components/teams/TeamsHome'
 import TeamDashboard from './components/teams/TeamDashboard'
+import NotificationsCenter from './components/notifications/NotificationsCenter'
+import ActivityFeed from './components/activity/ActivityFeed'
 
 // Context
 import { AuthProvider, useAuth } from './components/context/AuthContext'
@@ -71,6 +73,9 @@ function AppContent() {
           {/* Teams */}
           <Route path="/teams" element={user ? <TeamsHome /> : <Navigate to="/" />} />
           <Route path="/teams/:teamId" element={user ? <TeamDashboard /> : <Navigate to="/" />} />
+          {/* New Features */}
+          <Route path="/notifications" element={user ? <NotificationsCenter /> : <Navigate to="/" />} />
+          <Route path="/activity" element={user ? <ActivityFeed /> : <Navigate to="/" />} />
         </Routes>
       </main>
     </>

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import { useTeams } from '../context/TeamsContext'
 import { toast } from 'react-hot-toast'
 
 const api = axios.create({ baseURL: 'http://localhost:5000/api/v1' })
@@ -17,6 +18,7 @@ api.interceptors.request.use(
 const TeamDashboard = () => {
   const { teamId } = useParams()
   const { user } = useAuth()
+  const { loadInvitations } = useTeams()
   const [team, setTeam] = useState(null)
   const [tasks, setTasks] = useState([])
   const [title, setTitle] = useState('')
@@ -57,17 +59,20 @@ const TeamDashboard = () => {
     }
   }
 
+  const loadUsers = async () => {
+    try {
+      const res = await api.get('/users')
+      const normalized = res.data.data.users.map((u) => ({ ...u, id: u._id }))
+      setUsers(normalized)
+    } catch (_) {}
+  }
+
   useEffect(() => {
     loadTeam()
     loadTasks()
-    ;(async () => {
-      try {
-        const res = await api.get('/users')
-        const normalized = res.data.data.users.map((u) => ({ ...u, id: u._id }))
-        setUsers(normalized)
-      } catch (_) {}
-    })()
-  }, [teamId])
+    loadUsers()
+    loadInvitations() // Refresh invitations when component mounts
+  }, [teamId, loadInvitations])
 
   const createTask = async (e) => {
     e.preventDefault()

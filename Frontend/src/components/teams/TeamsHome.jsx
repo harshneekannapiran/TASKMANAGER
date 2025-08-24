@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTeams } from '../context/TeamsContext'
 import { useAuth } from '../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
@@ -11,9 +11,15 @@ const TeamsHome = () => {
     invitations,
     createTeam,
     respondInvitation,
+    loadInvitations,
   } = useTeams()
   const [teamName, setTeamName] = useState('')
   const navigate = useNavigate()
+
+  // Refresh invitations when component mounts
+  useEffect(() => {
+    loadInvitations()
+  }, [loadInvitations])
 
   const handleCreate = async (e) => {
     e.preventDefault()
