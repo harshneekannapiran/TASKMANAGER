@@ -19,6 +19,7 @@ import TeamsHome from './components/teams/TeamsHome'
 import TeamDashboard from './components/teams/TeamDashboard'
 import NotificationsCenter from './components/notifications/NotificationsCenter'
 import ActivityFeed from './components/activity/ActivityFeed'
+import SimpleChatbot from './components/chatbot/SimpleChatbot'
 
 // Context
 import { AuthProvider, useAuth } from './components/context/AuthContext'
@@ -78,6 +79,8 @@ function AppContent() {
           <Route path="/activity" element={user ? <ActivityFeed /> : <Navigate to="/" />} />
         </Routes>
       </main>
+      {/* AI Chatbot - Only show when user is logged in */}
+      {user && <SimpleChatbot />}
     </>
   )
 }

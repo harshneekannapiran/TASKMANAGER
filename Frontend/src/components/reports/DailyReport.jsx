@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../context/TaskContext'
+import { generatePDFReport } from '../../utils/pdfGenerator'
+import { toast } from 'react-hot-toast'
 import { 
   BarChart3, 
   TrendingUp, 
@@ -8,7 +10,8 @@ import {
   Clock, 
   AlertCircle,
   Target,
-  Award
+  Award,
+  Download
 } from 'lucide-react'
 
 const DailyReport = () => {
@@ -302,6 +305,17 @@ const DailyReport = () => {
     return <Target className="h-6 w-6 text-red-600 dark:text-red-400" />
   }
 
+  const handleDownloadPDF = async () => {
+    try {
+      toast.loading('Generating PDF report...', { id: 'pdf-generation' });
+      await generatePDFReport(reportData, selectedDate, user?.name || 'User');
+      toast.success('PDF report downloaded successfully!', { id: 'pdf-generation' });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF report. Please try again.', { id: 'pdf-generation' });
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -312,13 +326,20 @@ const DailyReport = () => {
               Track your productivity and task completion
             </p>
           </div>
-          <div className="mt-4 sm:mt-0">
+          <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-3">
             <input
               type="date"
               value={selectedDate.toISOString().split('T')[0]}
               onChange={(e) => setSelectedDate(new Date(e.target.value))}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
+            <button
+              onClick={handleDownloadPDF}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </button>
           </div>
         </div>
       </div>
