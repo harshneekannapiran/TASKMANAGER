@@ -23,6 +23,12 @@ router.post('/:teamId/tasks', teamController.createTeamTask);
 router.patch('/:teamId/tasks/:taskId', teamController.updateTeamTask);
 router.delete('/:teamId/tasks/:taskId', teamController.deleteTeamTask);
 
+// Meetings
+router.get('/:teamId/meetings', teamController.getTeamMeetings);
+router.post('/:teamId/meetings', teamController.createTeamMeeting);
+router.patch('/:teamId/meetings/:meetingId', teamController.updateTeamMeeting);
+router.delete('/:teamId/meetings/:meetingId', teamController.deleteTeamMeeting);
+
 module.exports = router;
 
 

@@ -34,16 +34,33 @@ const Navbar = () => {
   const getUnreadNotificationsCount = () => {
     let count = 0
     
-    // Team invitations
-    count += invitations.length
+    // Get read notifications from localStorage
+    const readNotifications = new Set()
+    try {
+      const saved = localStorage.getItem('readNotifications')
+      if (saved) {
+        JSON.parse(saved).forEach(id => readNotifications.add(id))
+      }
+    } catch (e) {
+      console.error('Failed to load read notifications:', e)
+    }
     
-    // Tasks due within 24 hours
+    // Team invitations (only unread)
+    invitations.forEach(inv => {
+      if (!readNotifications.has(`inv-${inv._id}`)) {
+        count++
+      }
+    })
+    
+    // Tasks due within 24 hours (only unread)
     const now = new Date()
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
     
     tasks.forEach(task => {
       if (task.dueDate && new Date(task.dueDate) <= tomorrow && task.status !== 'completed') {
-        count++
+        if (!readNotifications.has(`task-${task.id}`)) {
+          count++
+        }
       }
     })
     

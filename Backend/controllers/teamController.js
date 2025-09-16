@@ -3,6 +3,7 @@ const TeamInvitation = require('../models/TeamInvitation');
 const Task = require('../models/Task');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const Meeting = require('../models/Meeting');
 
 // Create a team (owner = current user)
 exports.createTeam = catchAsync(async (req, res, next) => {
@@ -202,4 +203,98 @@ exports.deleteTeamTask = catchAsync(async (req, res, next) => {
   res.status(204).json({ status: 'success', data: null });
 });
 
+// -----------------------
+// Team Meetings
+// -----------------------
+
+// List meetings for a team (owner or member)
+exports.getTeamMeetings = catchAsync(async (req, res, next) => {
+  const { teamId } = req.params;
+  const team = await Team.findById(teamId);
+  if (!team) return next(new AppError('Team not found', 404));
+  const isOwner = String(team.owner) === String(req.user.id);
+  const isMember = team.members.some((m) => String(m) === String(req.user.id));
+  if (!isOwner && !isMember) return next(new AppError('Forbidden', 403));
+
+  const meetings = await Meeting.find({ team: teamId })
+    .sort({ startAt: 1 })
+    .populate('attendees', 'name email');
+
+  res.status(200).json({ status: 'success', results: meetings.length, data: { meetings } });
+});
+
+// Create a meeting (owner only for simplicity)
+exports.createTeamMeeting = catchAsync(async (req, res, next) => {
+  const { teamId } = req.params;
+  const team = await Team.findById(teamId);
+  if (!team) return next(new AppError('Team not found', 404));
+  if (String(team.owner) !== String(req.user.id)) return next(new AppError('Only the owner can create meetings', 403));
+
+  const payload = {
+    team: teamId,
+    title: req.body.title,
+    description: req.body.description,
+    startAt: req.body.startAt,
+    endAt: req.body.endAt,
+    link: req.body.link,
+    attendees: (req.body.attendees || []).filter(Boolean),
+    createdBy: req.user.id,
+  };
+
+  if (!payload.title || !payload.startAt) {
+    return next(new AppError('Title and start time are required', 400));
+  }
+
+  const meeting = await Meeting.create(payload);
+  res.status(201).json({ status: 'success', data: { meeting } });
+});
+
+// Update a meeting (owner or creator). Members can only RSVP in future iteration
+exports.updateTeamMeeting = catchAsync(async (req, res, next) => {
+  const { teamId, meetingId } = req.params;
+  const team = await Team.findById(teamId);
+  if (!team) return next(new AppError('Team not found', 404));
+
+  const meeting = await Meeting.findOne({ _id: meetingId, team: teamId });
+  if (!meeting) return next(new AppError('Meeting not found', 404));
+
+  const isOwner = String(team.owner) === String(req.user.id);
+  const isCreator = String(meeting.createdBy) === String(req.user.id);
+  if (!isOwner && !isCreator) return next(new AppError('Forbidden', 403));
+
+  const updates = {
+    title: req.body.title,
+    description: req.body.description,
+    startAt: req.body.startAt,
+    endAt: req.body.endAt,
+    link: req.body.link,
+    attendees: req.body.attendees,
+  };
+
+  Object.keys(updates).forEach((k) => updates[k] == null && delete updates[k]);
+
+  const updated = await Meeting.findOneAndUpdate({ _id: meetingId, team: teamId }, updates, {
+    new: true,
+    runValidators: true,
+  });
+
+  res.status(200).json({ status: 'success', data: { meeting: updated } });
+});
+
+// Delete a meeting (owner or creator)
+exports.deleteTeamMeeting = catchAsync(async (req, res, next) => {
+  const { teamId, meetingId } = req.params;
+  const team = await Team.findById(teamId);
+  if (!team) return next(new AppError('Team not found', 404));
+
+  const meeting = await Meeting.findOne({ _id: meetingId, team: teamId });
+  if (!meeting) return next(new AppError('Meeting not found', 404));
+
+  const isOwner = String(team.owner) === String(req.user.id);
+  const isCreator = String(meeting.createdBy) === String(req.user.id);
+  if (!isOwner && !isCreator) return next(new AppError('Forbidden', 403));
+
+  await Meeting.deleteOne({ _id: meetingId, team: teamId });
+  res.status(204).json({ status: 'success', data: null });
+});
 

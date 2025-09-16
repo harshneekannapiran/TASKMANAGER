@@ -13,6 +13,19 @@ const NotificationsCenter = () => {
   const [filter, setFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+  const [readNotifications, setReadNotifications] = useState(new Set())
+
+  // Load read notifications from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('readNotifications')
+    if (saved) {
+      try {
+        setReadNotifications(new Set(JSON.parse(saved)))
+      } catch (e) {
+        console.error('Failed to load read notifications:', e)
+      }
+    }
+  }, [])
 
   // Generate notifications from existing data
   useEffect(() => {
@@ -28,7 +41,7 @@ const NotificationsCenter = () => {
           message: `You've been invited to join team "${inv.team?.name}" by ${inv.invitedBy?.name}`,
           timestamp: new Date(inv.createdAt || Date.now()),
           data: inv,
-          isRead: false,
+          isRead: readNotifications.has(`inv-${inv._id}`),
           priority: 'high'
         })
       })
@@ -49,7 +62,7 @@ const NotificationsCenter = () => {
             message: `Task "${task.title}" is due ${hoursLeft > 0 ? `in ${hoursLeft} hours` : 'now'}`,
             timestamp: dueDate,
             data: task,
-            isRead: false,
+            isRead: readNotifications.has(`task-${task.id}`),
             priority: hoursLeft <= 2 ? 'urgent' : 'medium'
           })
         }
@@ -68,7 +81,7 @@ const NotificationsCenter = () => {
     }
 
     generateNotifications()
-  }, [invitations, tasks])
+  }, [invitations, tasks, readNotifications])
 
   const handleInvitationResponse = async (invitationId, action) => {
     try {
@@ -82,9 +95,26 @@ const NotificationsCenter = () => {
   }
 
   const markAsRead = (notificationId) => {
+    const newReadSet = new Set(readNotifications)
+    newReadSet.add(notificationId)
+    setReadNotifications(newReadSet)
+    localStorage.setItem('readNotifications', JSON.stringify([...newReadSet]))
+    
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
     )
+  }
+
+  const markAllAsRead = () => {
+    const allNotificationIds = notifications.map(n => n.id)
+    const newReadSet = new Set([...readNotifications, ...allNotificationIds])
+    setReadNotifications(newReadSet)
+    localStorage.setItem('readNotifications', JSON.stringify([...newReadSet]))
+    
+    setNotifications(prev => 
+      prev.map(n => ({ ...n, isRead: true }))
+    )
+    toast.success('All notifications marked as read')
   }
 
   const archiveNotification = (notificationId) => {
@@ -135,6 +165,15 @@ const NotificationsCenter = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-green-600 text-white hover:bg-green-700"
+            >
+              <CheckCircle className="h-4 w-4 mr-2 inline" />
+              Mark All as Read
+            </button>
+          )}
           <button
             onClick={() => setShowArchived(!showArchived)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${

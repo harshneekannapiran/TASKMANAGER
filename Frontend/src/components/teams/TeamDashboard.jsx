@@ -32,6 +32,15 @@ const TeamDashboard = () => {
   const [loading, setLoading] = useState(false)
   const [inviteUserId, setInviteUserId] = useState('')
   const [inviting, setInviting] = useState(false)
+  // Meetings
+  const [meetings, setMeetings] = useState([])
+  const [meetingTitle, setMeetingTitle] = useState('')
+  const [meetingStartAt, setMeetingStartAt] = useState('')
+  const [meetingEndAt, setMeetingEndAt] = useState('')
+  const [meetingLink, setMeetingLink] = useState('')
+  const [creatingMeeting, setCreatingMeeting] = useState(false)
+  const [showEndTime, setShowEndTime] = useState(false)
+  const [activeTab, setActiveTab] = useState('tasks') // 'tasks' | 'meetings'
 
   const isOwner = team && String(team.owner?._id || team.owner) === String(user?.id)
   const teamMemberIds = useMemo(() => {
@@ -72,7 +81,42 @@ const TeamDashboard = () => {
     loadTasks()
     loadUsers()
     loadInvitations() // Refresh invitations when component mounts
+    loadMeetings()
   }, [teamId, loadInvitations])
+
+  const loadMeetings = async () => {
+    try {
+      const res = await api.get(`/teams/${teamId}/meetings`)
+      setMeetings(res.data.data.meetings)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to load meetings')
+    }
+  }
+
+  const createMeeting = async (e) => {
+    e.preventDefault()
+    if (!meetingTitle.trim() || !meetingStartAt) return
+    setCreatingMeeting(true)
+    try {
+      const payload = {
+        title: meetingTitle.trim(),
+        startAt: new Date(meetingStartAt).toISOString(),
+        endAt: meetingEndAt ? new Date(meetingEndAt).toISOString() : undefined,
+        link: meetingLink || undefined,
+      }
+      const res = await api.post(`/teams/${teamId}/meetings`, payload)
+      setMeetings((prev) => [...prev, res.data.data.meeting].sort((a,b)=> new Date(a.startAt)-new Date(b.startAt)))
+      setMeetingTitle('')
+      setMeetingStartAt('')
+      setMeetingEndAt('')
+      setMeetingLink('')
+      toast.success('Meeting created')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create meeting')
+    } finally {
+      setCreatingMeeting(false)
+    }
+  }
 
   const createTask = async (e) => {
     e.preventDefault()
@@ -149,6 +193,16 @@ const TeamDashboard = () => {
       await loadTeam()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to remove member')
+    }
+  }
+
+  const deleteMeeting = async (meetingId) => {
+    try {
+      await api.delete(`/teams/${teamId}/meetings/${meetingId}`)
+      setMeetings((prev) => prev.filter((m) => m._id !== meetingId))
+      toast.success('Meeting deleted')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete meeting')
     }
   }
 
@@ -233,7 +287,23 @@ const TeamDashboard = () => {
         )}
       </div>
 
-      {isOwner && (
+      {/* Tabs */}
+      <div className="mb-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-4">
+        <button
+          className={`px-3 py-2 text-sm font-medium rounded-t ${activeTab === 'tasks' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400'}`}
+          onClick={() => setActiveTab('tasks')}
+        >
+          Tasks
+        </button>
+        <button
+          className={`px-3 py-2 text-sm font-medium rounded-t ${activeTab === 'meetings' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 dark:text-gray-400'}`}
+          onClick={() => setActiveTab('meetings')}
+        >
+          Meetings
+        </button>
+      </div>
+
+      {activeTab === 'tasks' && isOwner && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
           <form onSubmit={createTask} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
             <input
@@ -257,7 +327,101 @@ const TeamDashboard = () => {
         </div>
       )}
 
-      {/* Simple Kanban board */}
+      {activeTab === 'meetings' && (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Team Meetings</h2>
+        </div>
+        {isOwner && (
+          <div className="mb-6">
+            <div className="bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Create Meeting</h3>
+              <form onSubmit={createMeeting} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="Meeting title"
+                  value={meetingTitle}
+                  onChange={(e) => setMeetingTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                />
+                <input
+                  type="datetime-local"
+                  placeholder="Start time"
+                  value={meetingStartAt}
+                  onChange={(e) => setMeetingStartAt(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                />
+                {showEndTime && (
+                  <input
+                    type="datetime-local"
+                    placeholder="End time (optional)"
+                    value={meetingEndAt}
+                    onChange={(e) => setMeetingEndAt(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                  />
+                )}
+                <input
+                  type="url"
+                  placeholder="Meeting link (optional)"
+                  value={meetingLink}
+                  onChange={(e) => setMeetingLink(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowEndTime((s) => !s)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {showEndTime ? 'Remove end time' : 'Add end time'}
+                  </button>
+                </div>
+                <div className="md:col-span-2 flex justify-end">
+                  <button
+                    disabled={creatingMeeting || !meetingTitle.trim() || !meetingStartAt}
+                    className="px-4 py-2 !bg-blue-600 hover:!bg-blue-700 text-white rounded-md disabled:opacity-60"
+                  >
+                    {creatingMeeting ? 'Creating…' : 'Create Meeting'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {meetings.length === 0 ? (
+          <p className="text-sm text-gray-600 dark:text-gray-400">No meetings scheduled</p>
+        ) : (
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            {meetings.map((m) => (
+              <li key={m._id} className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">{m.title}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">
+                    {new Date(m.startAt).toLocaleString()} {m.endAt ? `- ${new Date(m.endAt).toLocaleString()}` : ''}
+                  </p>
+                  {m.link && (
+                    <a href={m.link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 dark:text-blue-400 underline">
+                      Join link
+                    </a>
+                  )}
+                </div>
+                {(isOwner || String(m.createdBy) === String(user?.id)) && (
+                  <button
+                    onClick={() => deleteMeeting(m._id)}
+                    className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-md"
+                  >
+                    Delete
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      )}
+
+      {activeTab === 'tasks' && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {['todo', 'in-progress', 'completed'].map((col) => (
           <div key={col} className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -329,6 +493,7 @@ const TeamDashboard = () => {
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }
