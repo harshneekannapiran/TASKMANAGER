@@ -66,6 +66,8 @@ const TaskCard = ({ task, onDelete, onStatusChange }) => {
     }
   }
 
+  
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high':
@@ -223,6 +225,8 @@ const TaskCard = ({ task, onDelete, onStatusChange }) => {
           </div>
         )}
       </div>
+
+      
     </div>
   )
 }

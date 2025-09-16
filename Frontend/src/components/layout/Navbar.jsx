@@ -18,7 +18,8 @@ import {
   BarChart3,
   Layers,
   Bell,
-  Activity
+  Activity,
+  ClipboardList
 } from 'lucide-react'
 
 const Navbar = () => {
@@ -68,6 +69,24 @@ const Navbar = () => {
   }
 
   const unreadNotificationsCount = getUnreadNotificationsCount()
+  const [unreadMessages, setUnreadMessages] = useState(0)
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const token = localStorage.getItem('taskmanager_token')
+        if (!token) return
+        const res = await fetch('http://localhost:5000/api/v1/tasks/messages/unread-count', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (data?.data?.count != null) setUnreadMessages(data.data.count)
+      } catch (e) {}
+    }
+    fetchUnread()
+    const id = setInterval(fetchUnread, 15000)
+    return () => clearInterval(id)
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -81,15 +100,17 @@ const Navbar = () => {
     { path: '/timer', label: 'Timer', icon: Clock },
     { path: '/report', label: 'Reports', icon: BarChart3 },
     { path: '/teams', label: 'Teams', icon: Layers, hasNotification: invitations.length > 0, notificationCount: invitations.length },
-    { path: '/notifications', label: 'Notifications', icon: Bell, hasNotification: unreadNotificationsCount > 0, notificationCount: unreadNotificationsCount },
+    { path: '/assigned', label: 'Assigned', icon: ClipboardList },
+    { path: '/notifications', label: 'Notifications', icon: Bell, hasNotification: (unreadNotificationsCount + unreadMessages) > 0, notificationCount: unreadNotificationsCount + unreadMessages },
     { path: '/activity', label: 'Activity', icon: Activity },
   ]
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
+      <div className="w-full px-2 sm:px-4">
+        <div className="flex items-center justify-between h-16">
+          {/* Left: Brand */}
+          <div className="flex items-center mr-4">
             <Link to="/dashboard" className="flex-shrink-0 flex items-center">
               <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Layers className="h-5 w-5 text-white" />
@@ -100,8 +121,8 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Center: Nav links */}
+          <div className="hidden md:flex items-center space-x-4 flex-1 justify-center">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.path
@@ -109,13 +130,13 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                  className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors relative ${
                     isActive
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <div className="flex items-center space-x-1">
+                  <div className="inline-flex items-center gap-1">
                     <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
                     {item.hasNotification && (
@@ -135,6 +156,7 @@ const Navbar = () => {
             })}
           </div>
 
+          {/* Right: Theme + User */}
           <div className="flex items-center space-x-4">
             {/* Theme Toggle */}
             <button
@@ -148,12 +170,12 @@ const Navbar = () => {
             <div className="relative">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex items-center space-x-2 p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <img
                   src={user?.avatar}
                   alt={user?.name}
-                  className="h-8 w-8 rounded-full"
+                  className="h-7 w-7 rounded-full"
                 />
                 <span className="hidden md:block text-sm font-medium">
                   {user?.name}

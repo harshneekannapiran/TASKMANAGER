@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react'
 import { useTeams } from '../context/TeamsContext'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../context/TaskContext'
-import { Bell, CheckCircle, Clock, AlertCircle, Users, CheckSquare, Calendar, Filter, Search, Archive } from 'lucide-react'
+import { Bell, CheckCircle, Clock, AlertCircle, Users, CheckSquare, Calendar, Filter, Search, Archive, MessageSquare, Trash2 } from 'lucide-react'
+import axios from 'axios'
+const api = axios.create({ baseURL: 'http://localhost:5000/api/v1' })
+api.interceptors.request.use((config)=>{
+  const token = localStorage.getItem('taskmanager_token')
+  if (token) config.headers['Authorization'] = `Bearer ${token}`
+  return config
+})
 import { toast } from 'react-hot-toast'
 
 const NotificationsCenter = () => {
@@ -27,9 +34,9 @@ const NotificationsCenter = () => {
     }
   }, [])
 
-  // Generate notifications from existing data
+  // Generate notifications from existing data plus unread messages
   useEffect(() => {
-    const generateNotifications = () => {
+    const buildBaseNotifications = () => {
       const notifs = []
 
       // Team invitations
@@ -68,19 +75,43 @@ const NotificationsCenter = () => {
         }
       })
 
-      // Sort by priority and timestamp
-      notifs.sort((a, b) => {
-        const priorityOrder = { urgent: 3, high: 2, medium: 1, low: 0 }
-        if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-          return priorityOrder[b.priority] - priorityOrder[a.priority]
-        }
-        return new Date(b.timestamp) - new Date(a.timestamp)
-      })
-
-      setNotifications(notifs)
+      return notifs
     }
 
-    generateNotifications()
+    const loadWithMessages = async () => {
+      try {
+        const base = buildBaseNotifications()
+        const res = await api.get('/tasks/messages/unread?limit=50')
+        const msgs = res.data?.data?.messages || []
+        msgs.forEach(m => {
+          base.push({
+            id: `msg-${m._id}`,
+            type: 'message',
+            title: `New message on ${m.task?.title || 'task'}`,
+            message: `${m.sender?.name || 'Someone'}: ${m.text}`,
+            timestamp: new Date(m.createdAt),
+            data: m,
+            isRead: false,
+            priority: 'high'
+          })
+        })
+
+        base.sort((a, b) => {
+          const priorityOrder = { urgent: 3, high: 2, medium: 1, low: 0 }
+          if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+            return priorityOrder[b.priority] - priorityOrder[a.priority]
+          }
+          return new Date(b.timestamp) - new Date(a.timestamp)
+        })
+        setNotifications(base)
+      } catch (e) {
+        const base = buildBaseNotifications()
+        base.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        setNotifications(base)
+      }
+    }
+
+    loadWithMessages()
   }, [invitations, tasks, readNotifications])
 
   const handleInvitationResponse = async (invitationId, action) => {
@@ -137,6 +168,7 @@ const NotificationsCenter = () => {
     switch (type) {
       case 'team-invitation': return <Users className="h-5 w-5 text-blue-600" />
       case 'task-due': return <CheckSquare className="h-5 w-5 text-orange-600" />
+      case 'message': return <MessageSquare className="h-5 w-5 text-blue-600" />
       default: return <Bell className="h-5 w-5 text-gray-600" />
     }
   }
@@ -237,6 +269,12 @@ const NotificationsCenter = () => {
               className={`bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 p-4 transition-all hover:shadow-md ${
                 getPriorityColor(notification.priority)
               } ${notification.isRead ? 'opacity-75' : ''}`}
+              onClick={() => {
+                if (notification.type === 'message' && notification.data?.task?._id) {
+                  const tid = notification.data.task._id
+                  window.location.href = `/assigned?taskId=${tid}`
+                }
+              }}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1">
@@ -300,6 +338,21 @@ const NotificationsCenter = () => {
                     </div>
                   )}
                   
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      try {
+                        if (notification.type === 'message' && notification.data?._id) {
+                          await api.delete(`/tasks/messages/${notification.data._id}`)
+                        }
+                      } catch (err) {}
+                      setNotifications(prev => prev.filter(n => n.id !== notification.id))
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                    title="Delete notification"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={() => archiveNotification(notification.id)}
                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"

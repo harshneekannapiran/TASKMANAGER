@@ -21,4 +21,17 @@ router
 router.route('/stats').get(taskController.getTaskStats);
 router.route('/date/:date').get(taskController.getTasksByDate);
 
+// Unread messages count
+router.route('/messages/unread-count').get(taskController.getUnreadMessageCount);
+router.route('/messages/unread').get(taskController.getUnreadMessages);
+router.route('/messages/:messageId').delete(taskController.deleteMessage);
+
+// Task messages
+router.route('/:id/messages')
+  .get(taskController.getTaskMessages)
+  .post(taskController.createTaskMessage);
+
+router.route('/:id/messages/read')
+  .patch(taskController.markTaskMessagesRead);
+
 module.exports = router;

@@ -20,6 +20,7 @@ import TeamDashboard from './components/teams/TeamDashboard'
 import NotificationsCenter from './components/notifications/NotificationsCenter'
 import ActivityFeed from './components/activity/ActivityFeed'
 import SimpleChatbot from './components/chatbot/SimpleChatbot'
+import AssignedTasks from './components/assigned/AssignedTasks'
 
 // Context
 import { AuthProvider, useAuth } from './components/context/AuthContext'
@@ -71,6 +72,7 @@ function AppContent() {
           <Route path="/calendar" element={user ? <CalendarView /> : <Navigate to="/" />} />
           <Route path="/timer" element={user ? <PomodoroTimer /> : <Navigate to="/" />} />
           <Route path="/report" element={user ? <DailyReport /> : <Navigate to="/" />} />
+          <Route path="/assigned" element={user ? <AssignedTasks /> : <Navigate to="/" />} />
           {/* Teams */}
           <Route path="/teams" element={user ? <TeamsHome /> : <Navigate to="/" />} />
           <Route path="/teams/:teamId" element={user ? <TeamDashboard /> : <Navigate to="/" />} />
