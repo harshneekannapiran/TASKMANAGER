@@ -268,7 +268,7 @@ const NotificationsCenter = () => {
               key={notification.id}
               className={`bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 p-4 transition-all hover:shadow-md ${
                 getPriorityColor(notification.priority)
-              } ${notification.isRead ? 'opacity-75' : ''}`}
+              } ${notification.isRead ? 'opacity-75' : ''} ${notification.type === 'message' ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30' : ''}`}
               onClick={() => {
                 if (notification.type === 'message' && notification.data?.task?._id) {
                   const tid = notification.data.task._id
