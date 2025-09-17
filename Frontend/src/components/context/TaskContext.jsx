@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 
 // Create a custom axios instance that always attaches the token
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api/v1',
+  baseURL: 'https://trilo.up.railway.app/api/v1',
 });
 
 api.interceptors.request.use(

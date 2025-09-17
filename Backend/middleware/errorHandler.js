@@ -6,8 +6,9 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateFieldsDB = (err) => {
-  const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
-  const message = `Duplicate field value: ${value}. Please use another value!`;
+  // Modern MongoDB driver exposes duplicate key in keyValue
+  const value = err.keyValue ? JSON.stringify(err.keyValue) : 'Duplicate value';
+  const message = `Duplicate field value: ${value}. Please use another value.`;
   return new AppError(message, 400);
 };
 
@@ -60,7 +61,11 @@ module.exports = (err, req, res, next) => {
   if (process.env.NODE_ENV === 'development') {
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === 'production') {
+    // Preserve important properties when cloning
     let error = { ...err };
+    error.message = err.message;
+    error.name = err.name;
+    error.code = err.code;
 
     if (error.name === 'CastError') error = handleCastErrorDB(error);
     if (error.code === 11000) error = handleDuplicateFieldsDB(error);

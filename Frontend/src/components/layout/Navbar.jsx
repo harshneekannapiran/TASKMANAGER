@@ -76,7 +76,7 @@ const Navbar = () => {
       try {
         const token = localStorage.getItem('taskmanager_token')
         if (!token) return
-        const res = await fetch('http://localhost:5000/api/v1/tasks/messages/unread-count', {
+        const res = await fetch('https://trilo.up.railway.app/api/v1/tasks/messages/unread-count', {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = await res.json()

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../context/TaskContext'
 import { Bell, CheckCircle, Clock, AlertCircle, Users, CheckSquare, Calendar, Filter, Search, Archive, MessageSquare, Trash2 } from 'lucide-react'
 import axios from 'axios'
-const api = axios.create({ baseURL: 'http://localhost:5000/api/v1' })
+const api = axios.create({ baseURL: 'https://trilo.up.railway.app/api/v1' })
 api.interceptors.request.use((config)=>{
   const token = localStorage.getItem('taskmanager_token')
   if (token) config.headers['Authorization'] = `Bearer ${token}`

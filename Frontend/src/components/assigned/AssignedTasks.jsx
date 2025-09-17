@@ -7,7 +7,7 @@ import { useTasks } from '../context/TaskContext'
 import { Search, Send, MessageSquare } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
-const api = axios.create({ baseURL: 'http://localhost:5000/api/v1' })
+const api = axios.create({ baseURL: 'https://trilo.up.railway.app/api/v1' })
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('taskmanager_token')
   if (token) config.headers['Authorization'] = `Bearer ${token}`

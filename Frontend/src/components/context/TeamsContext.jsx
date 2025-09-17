@@ -3,7 +3,7 @@ import axios from 'axios'
 import { toast } from 'react-hot-toast'
 import { useAuth } from './AuthContext'
 
-const api = axios.create({ baseURL: 'http://localhost:5000/api/v1' })
+const api = axios.create({ baseURL: 'https://trilo.up.railway.app/api/v1' })
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('taskmanager_token')

@@ -16,7 +16,7 @@ import {
 
 // Custom axios instance (same as in context)
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api/v1',
+  baseURL: 'https://trilo.up.railway.app/api/v1',
 });
 api.interceptors.request.use(
   (config) => {
